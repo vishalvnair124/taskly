@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:taskly/models/task.dart';
+import 'package:intl/intl.dart';
 
 class HomePage extends StatefulWidget {
   HomePage();
@@ -16,7 +17,10 @@ class _HomePageState extends State<HomePage> {
 
   String? _newTaskContent;
 
+  DateTime _selectedDateTime = DateTime.now();
+
   Box? _box;
+  List<int> _indexMap = [];
   _HomePageState();
 
   @override
@@ -64,6 +68,33 @@ class _HomePageState extends State<HomePage> {
 
   Widget _tasksList() {
     List tasks = _box!.values.toList();
+
+    _indexMap = List<int>.generate(
+        tasks.length, (index) => index); // Initialize the index map
+
+    // Selection sort with index mapping
+    for (int i = 0; i < tasks.length - 1; i++) {
+      int minIndex = i;
+      for (int j = i + 1; j < tasks.length; j++) {
+        if (Task.fromMap(tasks[j])
+            .timestamp
+            .isBefore(Task.fromMap(tasks[minIndex]).timestamp)) {
+          minIndex = j;
+        }
+      }
+      if (minIndex != i) {
+        // Swap tasks
+        var tempTask = tasks[minIndex];
+        tasks[minIndex] = tasks[i];
+        tasks[i] = tempTask;
+
+        // Swap indices in the index map
+        int tempIndex = _indexMap[minIndex];
+        _indexMap[minIndex] = _indexMap[i];
+        _indexMap[i] = tempIndex;
+      }
+    }
+
     return ListView.builder(
       itemCount: tasks.length,
       itemBuilder: (BuildContext _context, int _index) {
@@ -76,7 +107,7 @@ class _HomePageState extends State<HomePage> {
             ),
           ),
           subtitle: Text(
-            task.timestamp.toString(),
+            DateFormat('dd-MM-yyyy hh:mm a').format(task.timestamp),
           ),
           trailing: Icon(
             task.done
@@ -86,11 +117,11 @@ class _HomePageState extends State<HomePage> {
           ),
           onTap: () {
             task.done = !task.done;
-            _box!.putAt(_index, task.toMap());
+            _box!.putAt(_indexMap[_index], task.toMap());
             setState(() {});
           },
           onLongPress: () {
-            _displayDeltePopup(_index);
+            _displayDeletePopup(_indexMap[_index]);
           },
         );
       },
@@ -111,87 +142,154 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  void _displayDeltePopup(int _index) {
-    showDialog(
-        context: context,
-        builder: (BuildContext _context) {
-          return AlertDialog(
-            title: const Text("Do you want Delete ?"),
-            content: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: [
-                ElevatedButton(
-                    onPressed: () {
-                      setState(() {
-                        Navigator.pop(context);
-                      });
-                    },
-                    child: const Text("NO")),
-                ElevatedButton(
-                    style:
-                        ElevatedButton.styleFrom(backgroundColor: Colors.red),
-                    onPressed: () {
-                      _box!.deleteAt(_index);
-                      setState(() {});
-                      Navigator.pop(context);
-                    },
-                    child: const Text(
-                      "YES",
-                      style: TextStyle(color: Colors.white),
-                    ))
-              ],
-            ),
-          );
-        });
-  }
-
-  void _displayTaskPopup() {
+  void _displayDeletePopup(int _index) {
     showDialog(
       context: context,
       builder: (BuildContext _context) {
         return AlertDialog(
-          title: const Center(child: Text("Add New Task!")),
-          content: SizedBox(
-            height: _deviceHeight * 0.2,
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: [
-                TextField(
-                  onChanged: (_value) {
-                    setState(() {
-                      _newTaskContent = _value;
-                    });
-                  },
+          title: const Text("Do you want to delete?"),
+          content: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            children: [
+              ElevatedButton(
+                onPressed: () {
+                  setState(() {
+                    Navigator.pop(context);
+                  });
+                },
+                child: const Text("NO"),
+              ),
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+                onPressed: () {
+                  _box!.deleteAt(_index);
+                  setState(() {});
+                  Navigator.pop(context);
+                },
+                child: const Text(
+                  "YES",
+                  style: TextStyle(color: Colors.white),
                 ),
-                SizedBox(
-                  width: _deviceWidth * 0.4,
-                  child: ElevatedButton(
-                      style:
-                          ElevatedButton.styleFrom(backgroundColor: Colors.red),
-                      onPressed: () {
-                        if (_newTaskContent != null) {
-                          var task = Task(
-                            content: _newTaskContent!,
-                            timestamp: DateTime.now(),
-                            done: false,
-                          );
-                          _box!.add(task.toMap());
-                          setState(() {
-                            _newTaskContent = null;
-                            Navigator.pop(context);
-                          });
-                        }
-                      },
-                      child: const Text(
-                        "ADD",
-                        style: TextStyle(color: Colors.white),
-                      )),
-                )
-              ],
-            ),
+              ),
+            ],
           ),
         );
       },
     );
+  }
+
+  void _displayTaskPopup() {
+    _selectedDateTime = DateTime.now();
+    showDialog(
+      context: context,
+      builder: (BuildContext _context) {
+        return StatefulBuilder(
+          builder: (BuildContext context, StateSetter setState) {
+            return AlertDialog(
+              title: const Center(child: Text("Add New Task!")),
+              content: SizedBox(
+                height: _deviceHeight * 0.3,
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  children: [
+                    TextField(
+                      onChanged: (_value) {
+                        setState(() {
+                          _newTaskContent = _value;
+                        });
+                      },
+                    ),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                      children: [
+                        ElevatedButton(
+                          onPressed: () => _selectDate(context, setState),
+                          child: Text(DateFormat('yyyy-MM-dd')
+                              .format(_selectedDateTime)),
+                        ),
+                        ElevatedButton(
+                          onPressed: () => _selectTime(context, setState),
+                          child: Text(
+                              DateFormat('hh:mm a').format(_selectedDateTime)),
+                        ),
+                      ],
+                    ),
+                    SizedBox(
+                      width: _deviceWidth * 0.6,
+                      child: ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.red),
+                        onPressed: () {
+                          if (_newTaskContent != null) {
+                            // print("Selected dateTime : $_selectedDateTime");
+                            var task = Task(
+                              content: _newTaskContent!,
+                              timestamp: _selectedDateTime,
+                              done: false,
+                            );
+                            _box!.add(task.toMap());
+                            setState(() {
+                              _newTaskContent = null;
+
+                              Navigator.pop(context);
+                            });
+                          }
+                        },
+                        child: const Text(
+                          "ADD",
+                          style: TextStyle(color: Colors.white),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Future<void> _selectTime(BuildContext context, StateSetter setState) async {
+    final TimeOfDay? picked = await showTimePicker(
+      context: context,
+      initialTime: TimeOfDay.now(),
+    );
+
+    if (picked != null) {
+      setState(() {
+        DateTime selectedDateTime = DateTime(
+          _selectedDateTime.year,
+          _selectedDateTime.month,
+          _selectedDateTime.day,
+          picked.hour,
+          picked.minute,
+        );
+
+        _selectedDateTime = selectedDateTime;
+      });
+    }
+  }
+
+  Future<void> _selectDate(BuildContext context, StateSetter setState) async {
+    final DateTime? picked = await showDatePicker(
+      context: context,
+      initialDate: DateTime.now(),
+      firstDate: DateTime(2021),
+      lastDate: DateTime(2100),
+    );
+    if (picked != null) {
+      setState(() {
+        DateTime selectedDateTime = DateTime(
+          picked.year,
+          picked.month,
+          picked.day,
+          _selectedDateTime.hour,
+          _selectedDateTime.minute,
+        );
+        _selectedDateTime = selectedDateTime;
+      });
+    }
   }
 }
