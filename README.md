@@ -1,16 +1,31 @@
-# taskly
+# ✅ Taskly – Flutter Task Manager
 
-A new Flutter project.
+**Taskly** is a simple and elegant Flutter application for **storing and managing tasks**.
 
-## Getting Started
+---
 
-This project is a starting point for a Flutter application.
+## 🚀 Features
 
-A few resources to get you started if this is your first Flutter project:
+- 📝 Add, view, and manage tasks  
+- 💾 Data stored locally or via backend (if connected)  
+- 🌐 Web support via Flutter Web
 
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
+---
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+## 🌍 Live Demo
+
+🔗 [taskly-web](https://vishalvnair124.github.io/taskly-web/)
+
+---
+
+## 🧑‍💻 Built With
+
+- Flutter (Dart)  
+- Responsive Web UI  
+
+---
+
+## 👨‍💻 Developed By
+
+**Vishal V Nair**  
+📫 GitHub: [@vishalvnair124](https://github.com/vishalvnair124)
